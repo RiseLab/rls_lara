@@ -1,21 +1,43 @@
 <template>
 	<v-app>
-		<v-navigation-drawer app></v-navigation-drawer>
-		<v-toolbar app></v-toolbar>
+		<navigation :navigation="navigation" />
+
+		<v-toolbar clipped-left fixed app>
+			<v-toolbar-side-icon @click="navigation.show = !navigation.show"></v-toolbar-side-icon>
+			<v-toolbar-title class="headline text-uppercase ml-0">
+				<span>RL</span><span class="font-weight-light">STORE.MGMT</span>
+			</v-toolbar-title>
+		</v-toolbar>
+
 		<v-content>
 			<v-container fluid>
-				<router-link tag="li" to="/">Home</router-link>
-				<router-link tag="li" to="/about">About</router-link>
 				<router-view></router-view>
 			</v-container>
 		</v-content>
-		<v-footer app></v-footer>
+
+		<v-footer inset fixed app>
+			<v-spacer></v-spacer>
+			<span class="px-4">RiseLab &copy; {{ new Date().getFullYear() }}</span>
+		</v-footer>
 	</v-app>
 </template>
 
 <script>
+	import Navigation from "@/js/components/Navigation";
 	export default {
-		name: "App"
+		components: {Navigation},
+		data () {
+			return {
+				navigation: {
+					show: true,
+					items: [
+						{ title: 'Home', icon: 'store', to: '/' },
+						{ title: 'Category', icon: 'category', to: '/category' },
+						{ title: 'About', icon: 'info', to: '/about' },
+					]
+				}
+			}
+		}
 	}
 </script>
 
