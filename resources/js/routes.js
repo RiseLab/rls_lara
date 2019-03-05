@@ -2,6 +2,7 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 
 import Home from '@/js/components/Home';
+import Category from '@/js/components/Category';
 import About from '@/js/components/About';
 
 Vue.use(VueRouter);
@@ -13,6 +14,11 @@ const router = new VueRouter({
 			path: '/',
 			name: 'home',
 			component: Home
+		},
+		{
+			path: '/category',
+			name: 'category',
+			component: Category
 		},
 		{
 			path: '/about',
