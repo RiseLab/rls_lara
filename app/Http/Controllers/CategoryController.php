@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 
 class CategoryController extends Controller
 {
@@ -26,7 +28,18 @@ class CategoryController extends Controller
      */
     public function store(Request $request)
     {
-        //
+	    $validator = Validator::make($request->all(), [
+		    'title' => 'required|max:80|min:2',
+	    ]);
+	    if ($validator->fails()){
+		    return response()->json(['message' => $validator->errors()->first('title')], 400);
+	    }
+	    $category = Category::create([
+		    'title' => $request->title,
+		    'alias' => Str::slug($request->title)
+	    ]);
+	    $category->save();
+	    return response()->json($category, 201);
     }
 
     /**
@@ -44,22 +57,38 @@ class CategoryController extends Controller
      * Update the specified resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Category  $category
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Category $category)
+    public function update(Request $request, $id)
     {
-        //
+	    $validator = Validator::make($request->all(), [
+	    	'title' => 'required|max:80|min:2'
+	    ]);
+	    if ($validator->fails()){
+		    return response()->json(['message' => $validator->errors()->first('title')], 400);
+	    }
+	    $category = Category::where('id', $id)->first();
+	    $category->title = $request->title;
+	    $category->alias = Str::slug($request->title);
+		$category->save();
+	    return response()->json($category, 200);
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  \App\Category  $category
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Category $category)
+    public function destroy($id)
     {
-        //
+	    $category = Category::where('id', $id)->first();
+	    if (!is_null($category)){
+		    $category->delete();
+		    return response()->json(null, 204);
+	    } else {
+		    return response()->json(['message' => 'Category not found.'], 400);
+	    }
     }
 }
