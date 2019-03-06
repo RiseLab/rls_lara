@@ -21,5 +21,6 @@ Route::group(['prefix' => '/v1/categories'], function () {
 	Route::get('/', 'CategoryController@index');
 	Route::post('/', 'CategoryController@store');
 	Route::get('/{id}', 'CategoryController@show');
+	Route::put('/{id}', 'CategoryController@update');
 	Route::delete('/{id}', 'CategoryController@destroy');
 });

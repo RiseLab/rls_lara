@@ -1,5 +1,7 @@
 const mix = require('laravel-mix');
 
+mix.browserSync('localhost:8000');
+
 mix.webpackConfig({
 	resolve: {
 		extensions: ['.js', '.vue'],
