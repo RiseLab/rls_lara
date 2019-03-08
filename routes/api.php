@@ -18,16 +18,13 @@ Route::post('/login', 'API\AuthController@login');
 
 Route::middleware('auth:api')->group(function () {
 	Route::post('/logout', 'API\AuthController@logout');
-});
+	Route::get('/user', 'API\AuthController@getUser');
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-Route::group(['prefix' => '/v1/categories'], function () {
-	Route::get('/', 'CategoryController@index');
-	Route::post('/', 'CategoryController@store');
-	Route::get('/{id}', 'CategoryController@show');
-	Route::put('/{id}', 'CategoryController@update');
-	Route::delete('/{id}', 'CategoryController@destroy');
+	Route::group(['prefix' => '/v1/categories'], function () {
+		Route::get('/', 'CategoryController@index');
+		Route::post('/', 'CategoryController@store');
+		Route::get('/{id}', 'CategoryController@show');
+		Route::put('/{id}', 'CategoryController@update');
+		Route::delete('/{id}', 'CategoryController@destroy');
+	});
 });

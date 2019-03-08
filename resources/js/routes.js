@@ -28,4 +28,16 @@ const router = new VueRouter({
 	]
 });
 
+router.beforeEach((to, from, next) => {
+	if (!auth.check() && to.name !== 'home') {
+		next({
+			name: 'home'
+		});
+
+		return;
+	}
+
+	next();
+});
+
 export default router;

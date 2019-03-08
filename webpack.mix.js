@@ -1,6 +1,9 @@
 const mix = require('laravel-mix');
 
-mix.browserSync('localhost:8000');
+mix.browserSync({
+	proxy: 'localhost:8000',
+	notify: false
+});
 
 mix.webpackConfig({
 	resolve: {
