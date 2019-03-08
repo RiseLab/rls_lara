@@ -13,14 +13,18 @@ use Illuminate\Http\Request;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
+Route::post('/register', 'API\AuthController@register');
+Route::post('/login', 'API\AuthController@login');
 
-Route::group(['prefix' => '/v1/categories'], function () {
-	Route::get('/', 'CategoryController@index');
-	Route::post('/', 'CategoryController@store');
-	Route::get('/{id}', 'CategoryController@show');
-	Route::put('/{id}', 'CategoryController@update');
-	Route::delete('/{id}', 'CategoryController@destroy');
+Route::middleware('auth:api')->group(function () {
+	Route::post('/logout', 'API\AuthController@logout');
+	Route::get('/user', 'API\AuthController@getUser');
+
+	Route::group(['prefix' => '/v1/categories'], function () {
+		Route::get('/', 'CategoryController@index');
+		Route::post('/', 'CategoryController@store');
+		Route::get('/{id}', 'CategoryController@show');
+		Route::put('/{id}', 'CategoryController@update');
+		Route::delete('/{id}', 'CategoryController@destroy');
+	});
 });
