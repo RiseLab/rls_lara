@@ -7,7 +7,7 @@
 				<template v-slot:activator="{ on }">
 					<v-btn color="primary" v-on="on">
 						<v-icon small class="mr-1">add</v-icon>
-						Создать
+						Добавить
 					</v-btn>
 				</template>
 				<v-card>
@@ -16,20 +16,22 @@
 					</v-card-title>
 
 					<v-card-text>
-						<v-text-field
-								label="Наименование"
-								:rules="[rules.title]"
-								clearable
-								v-model="editedItem.title">
-						</v-text-field>
+						<v-form ref="form" v-model="valid" @submit.prevent>
+							<v-text-field
+									label="Наименование"
+									:counter="40"
+									:rules="[rules.required,rules.minLength,rules.maxLength]"
+									v-model="editedItem.title">
+							</v-text-field>
+						</v-form>
 					</v-card-text>
 
 					<v-card-actions>
 						<v-spacer></v-spacer>
-						<v-btn color="primary" flat @click="close">
+						<v-btn color="primary" flat @click="close" :disabled="loading.form">
 							Закрыть
 						</v-btn>
-						<v-btn color="primary" flat @click="save" :disabled="!saveBtn">
+						<v-btn color="primary" flat @click="save" :disabled="!valid" :loading="loading.form">
 							Сохранить
 						</v-btn>
 					</v-card-actions>
@@ -40,7 +42,7 @@
 				v-model="selected"
 				:headers="headers"
 				:items="items"
-				:loading="loading"
+				:loading="loading.table"
 				:rows-per-page-items="[10,25,{'text':'$vuetify.dataIterator.rowsPerPageAll','value':-1}]"
 				item-key="id"
 				select-all>
@@ -78,7 +80,11 @@
 		data () {
 		    return {
 		        dialog: false,
-				saveBtn: false,
+				valid: false,
+				loading: {
+		            table: true,
+					form: false
+				},
 		        selected: [],
 		        headers: [
 					{ text: 'id', value: 'id' },
@@ -94,17 +100,15 @@
 				},
 				editedIndex: -1,
 				rules: {
-		            title: value => {
-                        this.saveBtn = !!value;
-		                return value.length >= 2 || 'Обязательно для заполнения. Минимум 2 символа.';
-					}
+		            required: v => !!v || 'Required field.',
+					minLength: v => v.length >= 2 || 'Length must be 2 chars at least.',
+					maxLength: v => v.length <= 40 || 'Length must be less than 30 chars.'
 				},
 				message: {
 		            show: false,
 					color: '',
 					text: ''
-				},
-				loading: true
+				}
 			}
 		},
 
@@ -122,7 +126,7 @@
                     alias: ''
 				};
 		        this.editedIndex = -1;
-		        this.saveBtn = false;
+		        this.$refs.form.reset();
 				this.dialog = false;
 			},
 			del: function (item) {
@@ -150,7 +154,6 @@
 			edit: function (item) {
 		        this.editedIndex = this.items.indexOf(item);
 		        this.editedItem = Object.assign({}, item);
-		        this.saveBtn = true;
 		        this.dialog = true;
 			},
 			save: function () {
@@ -160,7 +163,7 @@
 		            sendMethod = 'put';
 		            sendUrl += '/' + this.editedItem.id;
 				}
-		        this.saveBtn = false;
+		        this.loading.form = true;
 		        axios({
                     method: sendMethod,
                     url: sendUrl,
@@ -185,7 +188,9 @@
 							color: 'error',
                             text: error.response.data.message
                         };
-					    this.saveBtn = true;
+					})
+					.finally(() => {
+					    this.loading.form = false;
 					});
             }
 		},
@@ -195,7 +200,7 @@
 				.get('/api/v1/categories')
 				.then(response => {
 				    this.items = response.data;
-				    this.loading = false;
+				    this.loading.table = false;
 				});
 		}
 	}

@@ -1,6 +1,7 @@
 import './bootstrap';
 import Vue from 'vue';
 import Vuetify from 'vuetify';
+import VueLazyload from 'vue-lazyload';
 
 // Route information for Vue Router
 import Routes from '@/js/routes.js';
@@ -18,6 +19,7 @@ window.Event = new Vue();
 import App from '@/js/views/App';
 
 Vue.use(Vuetify);
+Vue.use(VueLazyload);
 
 const app = new Vue({
 	el: '#app',
