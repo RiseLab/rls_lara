@@ -27,4 +27,12 @@ Route::middleware('auth:api')->group(function () {
 		Route::put('/{id}', 'CategoryController@update');
 		Route::delete('/{id}', 'CategoryController@destroy');
 	});
+
+	Route::group(['prefix' => '/v1/products'], function () {
+		Route::get('/', 'ProductController@index');
+		Route::post('/', 'ProductController@store');
+		Route::get('/{id}', 'ProductController@show');
+		Route::put('/{id}', 'ProductController@update');
+		Route::delete('/{id}', 'ProductController@destroy');
+	});
 });

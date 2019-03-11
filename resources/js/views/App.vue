@@ -39,6 +39,7 @@
 					items: [
 						{ title: 'Home', icon: 'store', to: '/' },
 						{ title: 'Category', icon: 'category', to: '/category' },
+						{ title: 'Product', icon: 'extension', to: '/product' },
 						{ title: 'About', icon: 'info', to: '/about' },
 					]
 				},
