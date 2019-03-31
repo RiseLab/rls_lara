@@ -77,9 +77,7 @@
 									mark-is-primary-text="Set as default"
 									popup-text="This image will be displayed as default"
 									drop-text="Drop your files here ..."
-									:data-images="photos"
-									idUpload="myIdUpload"
-									editUpload="myIdEdit">
+									:data-images="photos">
 							</vue-upload-multiple-image>
 							<v-checkbox
 									label="Опубликован"
@@ -205,12 +203,12 @@
                     description: '',
                     price: 0,
                     priceOld: 0,
-                    stock: 1,
+                    stock: 0,
                     available: false,
                     alias: ''
                 };
                 this.editedIndex = -1;
-                this.$refs.form.reset();
+                //this.$refs.form.reset();
                 this.dialog = false;
             },
             del: function (item) {
@@ -279,10 +277,10 @@
             },
             uploadImageSuccess(formData, index, fileList) {
                 console.log('data', formData, index, fileList);
-                // Upload image api
-                // axios.post('http://your-url-upload', formData).then(response => {
-                //   console.log(response)
-                // })
+                axios.post('/api/v1/uploads', formData)
+					.then(response => {
+						console.log(response);
+					});
             },
             beforeRemove (index, done, fileList) {
                 console.log('index', index, fileList);

@@ -2284,8 +2284,6 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
-//
-//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -2362,12 +2360,12 @@ __webpack_require__.r(__webpack_exports__);
         description: '',
         price: 0,
         priceOld: 0,
-        stock: 1,
+        stock: 0,
         available: false,
         alias: ''
       };
-      this.editedIndex = -1;
-      this.$refs.form.reset();
+      this.editedIndex = -1; //this.$refs.form.reset();
+
       this.dialog = false;
     },
     del: function del(item) {
@@ -2441,10 +2439,10 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     uploadImageSuccess: function uploadImageSuccess(formData, index, fileList) {
-      console.log('data', formData, index, fileList); // Upload image api
-      // axios.post('http://your-url-upload', formData).then(response => {
-      //   console.log(response)
-      // })
+      console.log('data', formData, index, fileList);
+      axios.post('/api/v1/uploads', formData).then(function (response) {
+        console.log(response);
+      });
     },
     beforeRemove: function beforeRemove(index, done, fileList) {
       console.log('index', index, fileList);
@@ -34547,9 +34545,7 @@ var render = function() {
                               "popup-text":
                                 "This image will be displayed as default",
                               "drop-text": "Drop your files here ...",
-                              "data-images": _vm.photos,
-                              idUpload: "myIdUpload",
-                              editUpload: "myIdEdit"
+                              "data-images": _vm.photos
                             },
                             on: {
                               "upload-success": _vm.uploadImageSuccess,

@@ -35,4 +35,8 @@ Route::middleware('auth:api')->group(function () {
 		Route::put('/{id}', 'ProductController@update');
 		Route::delete('/{id}', 'ProductController@destroy');
 	});
+
+	Route::group(['prefix' => '/v1/uploads'], function () {
+		Route::post('/', 'UploadController@store');
+	});
 });
