@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Image;
 
 class UploadController extends Controller
 {
@@ -15,8 +16,10 @@ class UploadController extends Controller
 	public function store(Request $request)
 	{
 		if ($request->hasFile('file')) {
-			$path = $request->file('file')->store('temp', 'uploads');
-			return response()->json($path, 201);
+			$path = storage_path('app/public/' . $request->file('file')->store('temp', 'public'));
+			$image = Image::make($path)->fit(1024, 768)->save($path);
+			$imageName = $image->filename . '.' . $image->extension;
+			return response()->json($imageName, 201);
 		} else {
 			return response()->json(['error' => 'Upload error'], 400);
 		}

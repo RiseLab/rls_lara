@@ -85,6 +85,7 @@
 									v-model="editedItem.available">
 							</v-checkbox>
 						</v-form>
+						{{ photos }}
 					</v-card-text>
 
 					<v-card-actions>
@@ -276,10 +277,10 @@
                     });
             },
             uploadImageSuccess(formData, index, fileList) {
-                console.log('data', formData, index, fileList);
                 axios.post('/api/v1/uploads', formData)
 					.then(response => {
-						console.log(response);
+						fileList[index].path = `/storage/temp/${response.data}`;
+						this.photos = fileList;
 					});
             },
             beforeRemove (index, done, fileList) {

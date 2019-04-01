@@ -2284,6 +2284,7 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -2439,9 +2440,11 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     uploadImageSuccess: function uploadImageSuccess(formData, index, fileList) {
-      console.log('data', formData, index, fileList);
+      var _this3 = this;
+
       axios.post('/api/v1/uploads', formData).then(function (response) {
-        console.log(response);
+        fileList[index].path = "/storage/temp/".concat(response.data);
+        _this3.photos = fileList;
       });
     },
     beforeRemove: function beforeRemove(index, done, fileList) {
@@ -2460,11 +2463,11 @@ __webpack_require__.r(__webpack_exports__);
     }
   },
   mounted: function mounted() {
-    var _this3 = this;
+    var _this4 = this;
 
     axios.get('/api/v1/products').then(function (response) {
-      _this3.items = response.data;
-      _this3.loading.table = false;
+      _this4.items = response.data;
+      _this4.loading.table = false;
     });
   }
 });
@@ -34567,7 +34570,8 @@ var render = function() {
                           })
                         ],
                         1
-                      )
+                      ),
+                      _vm._v("\n\t\t\t\t\t" + _vm._s(_vm.photos) + "\n\t\t\t\t")
                     ],
                     1
                   ),
@@ -38365,7 +38369,7 @@ __webpack_require__.r(__webpack_exports__);
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(global, setImmediate) {/*!
- * Vue.js v2.6.8
+ * Vue.js v2.6.10
  * (c) 2014-2019 Evan You
  * Released under the MIT License.
  */
@@ -40223,10 +40227,11 @@ function invokeWithErrorHandling (
   var res;
   try {
     res = args ? handler.apply(context, args) : handler.call(context);
-    if (res && !res._isVue && isPromise(res)) {
+    if (res && !res._isVue && isPromise(res) && !res._handled) {
+      res.catch(function (e) { return handleError(e, vm, info + " (Promise/async)"); });
       // issue #9511
-      // reassign to res to avoid catch triggering multiple times when nested calls
-      res = res.catch(function (e) { return handleError(e, vm, info + " (Promise/async)"); });
+      // avoid catch triggering multiple times when nested calls
+      res._handled = true;
     }
   } catch (e) {
     handleError(e, vm, info);
@@ -40909,7 +40914,8 @@ function normalizeScopedSlots (
   prevSlots
 ) {
   var res;
-  var isStable = slots ? !!slots.$stable : true;
+  var hasNormalSlots = Object.keys(normalSlots).length > 0;
+  var isStable = slots ? !!slots.$stable : !hasNormalSlots;
   var key = slots && slots.$key;
   if (!slots) {
     res = {};
@@ -40921,7 +40927,8 @@ function normalizeScopedSlots (
     prevSlots &&
     prevSlots !== emptyObject &&
     key === prevSlots.$key &&
-    Object.keys(normalSlots).length === 0
+    !hasNormalSlots &&
+    !prevSlots.$hasNormal
   ) {
     // fast path 2: stable scoped slots w/ no normal slots to proxy,
     // only need to normalize once
@@ -40947,6 +40954,7 @@ function normalizeScopedSlots (
   }
   def(res, '$stable', isStable);
   def(res, '$key', key);
+  def(res, '$hasNormal', hasNormalSlots);
   return res
 }
 
@@ -40956,8 +40964,10 @@ function normalizeScopedSlot(normalSlots, key, fn) {
     res = res && typeof res === 'object' && !Array.isArray(res)
       ? [res] // single vnode
       : normalizeChildren(res);
-    return res && res.length === 0
-      ? undefined
+    return res && (
+      res.length === 0 ||
+      (res.length === 1 && res[0].isComment) // #9658
+    ) ? undefined
       : res
   };
   // this is a slot using the new v-slot syntax without scope. although it is
@@ -41137,12 +41147,13 @@ function bindObjectProps (
             : data.attrs || (data.attrs = {});
         }
         var camelizedKey = camelize(key);
-        if (!(key in hash) && !(camelizedKey in hash)) {
+        var hyphenatedKey = hyphenate(key);
+        if (!(camelizedKey in hash) && !(hyphenatedKey in hash)) {
           hash[key] = value[key];
 
           if (isSync) {
             var on = data.on || (data.on = {});
-            on[("update:" + camelizedKey)] = function ($event) {
+            on[("update:" + key)] = function ($event) {
               value[key] = $event;
             };
           }
@@ -41977,7 +41988,7 @@ function resolveAsyncComponent (
   }
 
   var owner = currentRenderingInstance;
-  if (isDef(factory.owners) && factory.owners.indexOf(owner) === -1) {
+  if (owner && isDef(factory.owners) && factory.owners.indexOf(owner) === -1) {
     // already pending
     factory.owners.push(owner);
   }
@@ -41986,9 +41997,11 @@ function resolveAsyncComponent (
     return factory.loadingComp
   }
 
-  if (!isDef(factory.owners)) {
+  if (owner && !isDef(factory.owners)) {
     var owners = factory.owners = [owner];
-    var sync = true
+    var sync = true;
+    var timerLoading = null;
+    var timerTimeout = null
 
     ;(owner).$on('hook:destroyed', function () { return remove(owners, owner); });
 
@@ -41999,6 +42012,14 @@ function resolveAsyncComponent (
 
       if (renderCompleted) {
         owners.length = 0;
+        if (timerLoading !== null) {
+          clearTimeout(timerLoading);
+          timerLoading = null;
+        }
+        if (timerTimeout !== null) {
+          clearTimeout(timerTimeout);
+          timerTimeout = null;
+        }
       }
     };
 
@@ -42045,7 +42066,8 @@ function resolveAsyncComponent (
           if (res.delay === 0) {
             factory.loading = true;
           } else {
-            setTimeout(function () {
+            timerLoading = setTimeout(function () {
+              timerLoading = null;
               if (isUndef(factory.resolved) && isUndef(factory.error)) {
                 factory.loading = true;
                 forceRender(false);
@@ -42055,7 +42077,8 @@ function resolveAsyncComponent (
         }
 
         if (isDef(res.timeout)) {
-          setTimeout(function () {
+          timerTimeout = setTimeout(function () {
+            timerTimeout = null;
             if (isUndef(factory.resolved)) {
               reject(
                 "timeout (" + (res.timeout) + "ms)"
@@ -42601,11 +42624,21 @@ var getNow = Date.now;
 // timestamp can either be hi-res (relative to page load) or low-res
 // (relative to UNIX epoch), so in order to compare time we have to use the
 // same timestamp type when saving the flush timestamp.
-if (inBrowser && getNow() > document.createEvent('Event').timeStamp) {
-  // if the low-res timestamp which is bigger than the event timestamp
-  // (which is evaluated AFTER) it means the event is using a hi-res timestamp,
-  // and we need to use the hi-res version for event listeners as well.
-  getNow = function () { return performance.now(); };
+// All IE versions use low-res event timestamps, and have problematic clock
+// implementations (#9632)
+if (inBrowser && !isIE) {
+  var performance = window.performance;
+  if (
+    performance &&
+    typeof performance.now === 'function' &&
+    getNow() > document.createEvent('Event').timeStamp
+  ) {
+    // if the event timestamp, although evaluated AFTER the Date.now(), is
+    // smaller than it, it means the event is using a hi-res timestamp,
+    // and we need to use the hi-res version for event listener timestamps as
+    // well.
+    getNow = function () { return performance.now(); };
+  }
 }
 
 /**
@@ -43770,7 +43803,7 @@ Object.defineProperty(Vue, 'FunctionalRenderContext', {
   value: FunctionalRenderContext
 });
 
-Vue.version = '2.6.8';
+Vue.version = '2.6.10';
 
 /*  */
 
@@ -45862,8 +45895,10 @@ function add$1 (
         e.target === e.currentTarget ||
         // event is fired after handler attachment
         e.timeStamp >= attachedTimestamp ||
-        // #9462 bail for iOS 9 bug: event.timeStamp is 0 after history.pushState
-        e.timeStamp === 0 ||
+        // bail for environments that have buggy event.timeStamp implementations
+        // #9462 iOS 9 bug: event.timeStamp is 0 after history.pushState
+        // #9681 QtWebEngine event.timeStamp is negative value
+        e.timeStamp <= 0 ||
         // #9448 bail if event is fired in another document in a multi-page
         // electron/nw.js app, since event.timeStamp will be using a different
         // starting reference
@@ -45930,10 +45965,11 @@ function updateDOMProps (oldVnode, vnode) {
   }
 
   for (key in oldProps) {
-    if (isUndef(props[key])) {
+    if (!(key in props)) {
       elm[key] = '';
     }
   }
+
   for (key in props) {
     cur = props[key];
     // ignore children if the node has textContent or innerHTML,
@@ -46481,8 +46517,8 @@ function enter (vnode, toggleDisplay) {
   var context = activeInstance;
   var transitionNode = activeInstance.$vnode;
   while (transitionNode && transitionNode.parent) {
-    transitionNode = transitionNode.parent;
     context = transitionNode.context;
+    transitionNode = transitionNode.parent;
   }
 
   var isAppear = !context._isMounted || !vnode.isRootInsert;
@@ -48189,7 +48225,7 @@ function parse (
         text = preserveWhitespace ? ' ' : '';
       }
       if (text) {
-        if (whitespaceOption === 'condense') {
+        if (!inPre && whitespaceOption === 'condense') {
           // condense consecutive whitespaces into single space
           text = text.replace(whitespaceRE$1, ' ');
         }
@@ -49050,7 +49086,7 @@ function isDirectChildOfTemplateFor (node) {
 
 /*  */
 
-var fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*\(/;
+var fnExpRE = /^([\w$_]+|\([^)]*?\))\s*=>|^function\s*(?:[\w$]+)?\s*\(/;
 var fnInvokeRE = /\([^)]*?\);*$/;
 var simplePathRE = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\['[^']*?']|\["[^"]*?"]|\[\d+]|\[[A-Za-z_$][\w$]*])*$/;
 
@@ -55125,7 +55161,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _util__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./util */ "./src/components/VDatePicker/util/index.ts");
 /* harmony import */ var _util_isDateAllowed__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./util/isDateAllowed */ "./src/components/VDatePicker/util/isDateAllowed.ts");
 /* harmony import */ var _util_console__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(/*! ../../util/console */ "./src/util/console.ts");
-/* harmony import */ var _util_mixins__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../../util/mixins */ "./src/util/mixins.ts");
+/* harmony import */ var _VCalendar_util_timestamp__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(/*! ../VCalendar/util/timestamp */ "./src/components/VCalendar/util/timestamp.ts");
+/* harmony import */ var _util_mixins__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(/*! ../../util/mixins */ "./src/util/mixins.ts");
 var __read = undefined && undefined.__read || function (o, n) {
     var m = typeof Symbol === "function" && o[Symbol.iterator];
     if (!m) return o;
@@ -55161,6 +55198,7 @@ var __read = undefined && undefined.__read || function (o, n) {
 
 
 
+
 // Adds leading zero to month/day if necessary, returns 'YYYY' if type = 'year',
 // 'YYYY-MM' if 'month' and 'YYYY-MM-DD' if 'date'
 function sanitizeDateString(dateString, type) {
@@ -55172,7 +55210,7 @@ function sanitizeDateString(dateString, type) {
         date = _c === void 0 ? 1 : _c;
     return (year + "-" + Object(_util__WEBPACK_IMPORTED_MODULE_6__["pad"])(month) + "-" + Object(_util__WEBPACK_IMPORTED_MODULE_6__["pad"])(date)).substr(0, { date: 10, month: 7, year: 4 }[type]);
 }
-/* harmony default export */ __webpack_exports__["default"] = (Object(_util_mixins__WEBPACK_IMPORTED_MODULE_9__["default"])(_mixins_picker__WEBPACK_IMPORTED_MODULE_5__["default"]
+/* harmony default export */ __webpack_exports__["default"] = (Object(_util_mixins__WEBPACK_IMPORTED_MODULE_10__["default"])(_mixins_picker__WEBPACK_IMPORTED_MODULE_5__["default"]
 /* @vue/component */
 ).extend({
     name: 'v-date-picker',
@@ -55404,7 +55442,7 @@ function sanitizeDateString(dateString, type) {
             if (this.type === 'month') {
                 this.tableDate = "" + value;
             } else {
-                this.tableDate = value + "-" + Object(_util__WEBPACK_IMPORTED_MODULE_6__["pad"])(this.tableMonth + 1);
+                this.tableDate = value + "-" + Object(_util__WEBPACK_IMPORTED_MODULE_6__["pad"])((this.tableMonth || 0) + 1);
             }
             this.activePicker = 'MONTH';
             if (this.reactive && !this.readonly && !this.multiple && this.isDateAllowed(this.inputDate)) {
@@ -55415,6 +55453,9 @@ function sanitizeDateString(dateString, type) {
             this.inputYear = parseInt(value.split('-')[0], 10);
             this.inputMonth = parseInt(value.split('-')[1], 10) - 1;
             if (this.type === 'date') {
+                if (this.inputDay) {
+                    this.inputDay = Math.min(this.inputDay, Object(_VCalendar_util_timestamp__WEBPACK_IMPORTED_MODULE_9__["daysInMonth"])(this.inputYear, this.inputMonth + 1));
+                }
                 this.tableDate = value;
                 this.activePicker = 'DATE';
                 if (this.reactive && !this.readonly && !this.multiple && this.isDateAllowed(this.inputDate)) {
@@ -56088,12 +56129,15 @@ __webpack_require__.r(__webpack_exports__);
         }
     },
     mounted: function mounted() {
-        var activeItem = this.$el.getElementsByClassName('active')[0];
-        if (activeItem) {
-            this.$el.scrollTop = activeItem.offsetTop - this.$el.offsetHeight / 2 + activeItem.offsetHeight / 2;
-        } else {
-            this.$el.scrollTop = this.$el.scrollHeight / 2 - this.$el.offsetHeight / 2;
-        }
+        var _this = this;
+        setTimeout(function () {
+            var activeItem = _this.$el.getElementsByClassName('active')[0];
+            if (activeItem) {
+                _this.$el.scrollTop = activeItem.offsetTop - _this.$el.offsetHeight / 2 + activeItem.offsetHeight / 2;
+            } else {
+                _this.$el.scrollTop = _this.$el.scrollHeight / 2 - _this.$el.offsetHeight / 2;
+            }
+        });
     },
     methods: {
         genYearItem: function genYearItem(year) {
@@ -56729,7 +56773,7 @@ var __assign = undefined && undefined.__assign || function () {
             // If the dialog content contains
             // the click event, or if the
             // dialog is not active
-            if (this.$refs.content.contains(e.target) || !this.isActive) return false;
+            if (!this.isActive || this.$refs.content.contains(e.target)) return false;
             // If we made it here, the click is outside
             // and is active. If persistent, and the
             // click is on the overlay, animate
@@ -56739,7 +56783,7 @@ var __assign = undefined && undefined.__assign || function () {
             }
             // close dialog if !persistent, clicked outside and we're the topmost dialog.
             // Since this should only be called in a capture event (bottom up), we shouldn't need to stop propagation
-            return Object(_util_helpers__WEBPACK_IMPORTED_MODULE_8__["getZIndex"])(this.$refs.content) >= this.getMaxZIndex();
+            return this.activeZIndex >= this.getMaxZIndex();
         },
         hideScroll: function hideScroll() {
             if (this.fullscreen) {
@@ -56751,16 +56795,62 @@ var __assign = undefined && undefined.__assign || function () {
         show: function show() {
             !this.fullscreen && !this.hideOverlay && this.genOverlay();
             this.$refs.content.focus();
-            this.$listeners.keydown && this.bind();
+            this.bind();
         },
         bind: function bind() {
-            window.addEventListener('keydown', this.onKeydown);
+            window.addEventListener('focusin', this.onFocusin);
         },
         unbind: function unbind() {
-            window.removeEventListener('keydown', this.onKeydown);
+            window.removeEventListener('focusin', this.onFocusin);
         },
         onKeydown: function onKeydown(e) {
+            if (e.keyCode === _util_helpers__WEBPACK_IMPORTED_MODULE_8__["keyCodes"].esc && !this.getOpenDependents().length) {
+                if (!this.persistent) {
+                    this.isActive = false;
+                    var activator_1 = this.getActivator();
+                    this.$nextTick(function () {
+                        return activator_1 && activator_1.focus();
+                    });
+                } else if (!this.noClickAnimation) {
+                    this.animateClick();
+                }
+            }
             this.$emit('keydown', e);
+        },
+        onFocusin: function onFocusin(e) {
+            var target = event.target;
+            if (
+            // It isn't the document or the dialog body
+            ![document, this.$refs.content].includes(target) &&
+            // It isn't inside the dialog body
+            !this.$refs.content.contains(target) &&
+            // We're the topmost dialog
+            this.activeZIndex >= this.getMaxZIndex() &&
+            // It isn't inside a dependent element (like a menu)
+            !this.getOpenDependentElements().some(function (el) {
+                return el.contains(target);
+            })
+            // So we must have focused something outside the dialog and its children
+            ) {
+                    // Find and focus the first available element inside the dialog
+                    var focusable = this.$refs.content.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                    focusable.length && focusable[0].focus();
+                }
+        },
+        getActivator: function getActivator(e) {
+            if (this.$refs.activator) {
+                return this.$refs.activator.children.length > 0 ? this.$refs.activator.children[0] : this.$refs.activator;
+            }
+            if (e) {
+                this.activatedBy = e.currentTarget || e.target;
+            }
+            if (this.activatedBy) return this.activatedBy;
+            if (this.activatorNode) {
+                var activator = Array.isArray(this.activatorNode) ? this.activatorNode[0] : this.activatorNode;
+                var el = activator && activator.elm;
+                if (el) return el;
+            }
+            Object(_util_console__WEBPACK_IMPORTED_MODULE_10__["consoleError"])('No activator found');
         },
         genActivator: function genActivator() {
             var _this = this;
@@ -56768,6 +56858,7 @@ var __assign = undefined && undefined.__assign || function () {
             var listeners = this.disabled ? {} : {
                 click: function click(e) {
                     e.stopPropagation();
+                    _this.getActivator(e);
                     if (!_this.disabled) _this.isActive = !_this.isActive;
                 }
             };
@@ -56778,9 +56869,10 @@ var __assign = undefined && undefined.__assign || function () {
             }
             return this.$createElement('div', {
                 staticClass: 'v-dialog__activator',
-                'class': {
+                class: {
                     'v-dialog__activator--disabled': this.disabled
                 },
+                ref: 'activator',
                 on: listeners
             }, this.$slots.activator);
         }
@@ -56794,7 +56886,7 @@ var __assign = undefined && undefined.__assign || function () {
             directives: [{
                 name: 'click-outside',
                 value: function value() {
-                    return _this.isActive = false;
+                    _this.isActive = false;
                 },
                 args: {
                     closeConditional: this.closeConditional,
@@ -56826,6 +56918,9 @@ var __assign = undefined && undefined.__assign || function () {
         children.push(h('div', {
             'class': this.contentClasses,
             attrs: __assign({ tabIndex: '-1' }, this.getScopeIdAttrs()),
+            on: {
+                keydown: this.onKeydown
+            },
             style: { zIndex: this.activeZIndex },
             ref: 'content'
         }, [this.$createElement(_util_ThemeProvider__WEBPACK_IMPORTED_MODULE_9__["default"], {
@@ -59708,8 +59803,8 @@ __webpack_require__.r(__webpack_exports__);
                 });
             });
         },
-        closeConditional: function closeConditional() {
-            return this.isActive && this.closeOnClick;
+        closeConditional: function closeConditional(e) {
+            return this.isActive && this.closeOnClick && !this.$refs.content.contains(e.target);
         },
         onResize: function onResize() {
             if (!this.isActive) return;
@@ -59933,7 +60028,7 @@ var __spread = undefined && undefined.__spread || function () {
             var directives = !this.openOnHover && this.closeOnClick ? [{
                 name: 'click-outside',
                 value: function value() {
-                    return _this.isActive = false;
+                    _this.isActive = false;
                 },
                 args: {
                     closeConditional: this.closeConditional,
@@ -59954,7 +60049,7 @@ var __spread = undefined && undefined.__spread || function () {
             var options = {
                 attrs: this.getScopeIdAttrs(),
                 staticClass: 'v-menu__content',
-                'class': __assign({}, this.rootThemeClasses, (_a = { 'v-menu__content--auto': this.auto, 'menuable__content__active': this.isActive }, _a[this.contentClass.trim()] = true, _a)),
+                'class': __assign({}, this.rootThemeClasses, (_a = { 'v-menu__content--auto': this.auto, 'v-menu__content--fixed': this.activatorFixed, 'menuable__content__active': this.isActive }, _a[this.contentClass.trim()] = true, _a)),
                 style: this.styles,
                 directives: this.genDirectives(),
                 ref: 'content',
@@ -59963,7 +60058,8 @@ var __spread = undefined && undefined.__spread || function () {
                         e.stopPropagation();
                         if (e.target.getAttribute('disabled')) return;
                         if (_this.closeOnContentClick) _this.isActive = false;
-                    }
+                    },
+                    keydown: this.onKeyDown
                 }
             };
             !this.disabled && this.openOnHover && (options.on.mouseenter = this.mouseEnterHandler);
@@ -60024,7 +60120,14 @@ __webpack_require__.r(__webpack_exports__);
         onKeyDown: function onKeyDown(e) {
             var _this = this;
             if (e.keyCode === _util_helpers__WEBPACK_IMPORTED_MODULE_0__["keyCodes"].esc) {
-                this.isActive = false;
+                // Wait for dependent elements to close first
+                setTimeout(function () {
+                    _this.isActive = false;
+                });
+                var activator_1 = this.getActivator();
+                this.$nextTick(function () {
+                    return activator_1 && activator_1.focus();
+                });
             } else if (e.keyCode === _util_helpers__WEBPACK_IMPORTED_MODULE_0__["keyCodes"].tab) {
                 setTimeout(function () {
                     if (!_this.$refs.content.contains(document.activeElement)) {
@@ -62794,6 +62897,8 @@ var defaultMenuProps = {
             // open `v-menu`
             if (this.selectedItems.length === 0) {
                 this.isMenuActive = true;
+            } else {
+                this.isMenuActive = false;
             }
             this.selectedIndex = -1;
         },
@@ -62825,11 +62930,15 @@ var defaultMenuProps = {
             }
             this.keyboardLookupPrefix += e.key.toLowerCase();
             this.keyboardLookupLastTime = now;
-            var item = this.allItems.find(function (item) {
+            var index = this.allItems.findIndex(function (item) {
                 return _this.getText(item).toLowerCase().startsWith(_this.keyboardLookupPrefix);
             });
-            if (item !== undefined) {
+            var item = this.allItems[index];
+            if (index !== -1) {
                 this.setValue(this.returnObject ? item : this.getValue(item));
+                setTimeout(function () {
+                    return _this.setMenuIndex(index);
+                });
             }
         },
         onKeyDown: function onKeyDown(e) {
@@ -66309,7 +66418,7 @@ var dirtyTypes = ['color', 'file', 'time', 'date', 'datetime-local', 'week', 'mo
                 return this.lazyValue;
             },
             set: function set(val) {
-                if (this.mask) {
+                if (this.mask && val !== this.lazyValue) {
                     this.lazyValue = this.unmaskText(this.maskText(this.unmaskText(val)));
                     this.setSelectionRange();
                 } else {
@@ -67276,7 +67385,7 @@ var __assign = undefined && undefined.__assign || function () {
             var coords = { x: clientX - left, y: top - clientY };
             var handAngle = Math.round(this.angle(center, coords) - this.rotate + 360) % 360;
             var insideClick = this.double && this.euclidean(center, coords) < (innerWidth + innerWidth * this.innerRadiusScale) / 4;
-            var value = Math.round(handAngle / this.degreesPerUnit) + this.min + (insideClick ? this.roundCount : 0);
+            var value = (Math.round(handAngle / this.degreesPerUnit) + (insideClick ? this.roundCount : 0)) % this.count + this.min;
             // Necessary to fix edge case when selecting left part of the value(s) at 12 o'clock
             var newValue;
             if (handAngle >= 360 - this.degreesPerUnit / 2) {
@@ -68109,7 +68218,7 @@ __webpack_require__.r(__webpack_exports__);
         var _a;
         var tooltip = h('div', this.setBackgroundColor(this.color, {
             staticClass: 'v-tooltip__content',
-            'class': (_a = {}, _a[this.contentClass] = true, _a['menuable__content__active'] = this.isActive, _a),
+            'class': (_a = {}, _a[this.contentClass] = true, _a['menuable__content__active'] = this.isActive, _a['v-tooltip__content--fixed'] = this.activatorFixed, _a),
             style: this.styles,
             attrs: this.getScopeIdAttrs(),
             directives: [{
@@ -69478,7 +69587,7 @@ var Vuetify = {
             return false;
         })(opts.components);
     },
-    version: '1.5.5'
+    version: '1.5.8'
 };
 function checkVueVersion(Vue, requiredVue) {
     var vueDep = requiredVue || '^2.5.18';
@@ -70611,17 +70720,6 @@ var VRowExpandTransition = Object(_util_helpers__WEBPACK_IMPORTED_MODULE_0__["cr
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-var __values = undefined && undefined.__values || function (o) {
-    var m = typeof Symbol === "function" && o[Symbol.iterator],
-        i = 0;
-    if (m) return m.call(o);
-    return {
-        next: function next() {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-};
 function closeConditional() {
     return false;
 }
@@ -70651,41 +70749,13 @@ function directive(e, el, binding) {
     // Check if it's a click outside our elements, and then if our callback returns true.
     // Non-toggleable components should take action in their callback and return falsy.
     // Toggleable can return true if it wants to deactivate.
-    // Note that, because we're in the capture phase, this callback will occure before
+    // Note that, because we're in the capture phase, this callback will occur before
     // the bubbling click event on any outside elements.
-    !clickedInEls(e, elements) && setTimeout(function () {
+    !elements.some(function (el) {
+        return el.contains(e.target);
+    }) && setTimeout(function () {
         isActive(e) && binding.value && binding.value(e);
     }, 0);
-}
-function clickedInEls(e, elements) {
-    var e_1, _a;
-    // Get position of click
-    var x = e.clientX,
-        y = e.clientY;
-    try {
-        // Loop over all included elements to see if click was in any of them
-        for (var elements_1 = __values(elements), elements_1_1 = elements_1.next(); !elements_1_1.done; elements_1_1 = elements_1.next()) {
-            var el = elements_1_1.value;
-            if (clickedInEl(el, x, y)) return true;
-        }
-    } catch (e_1_1) {
-        e_1 = { error: e_1_1 };
-    } finally {
-        try {
-            if (elements_1_1 && !elements_1_1.done && (_a = elements_1.return)) _a.call(elements_1);
-        } finally {
-            if (e_1) throw e_1.error;
-        }
-    }
-    return false;
-}
-function clickedInEl(el, x, y) {
-    // Get bounding rect for element
-    // (we're in capturing event and we want to check for multiple elements,
-    //  so can't use target.)
-    var b = el.getBoundingClientRect();
-    // Check if the click was in the element's bounding rect
-    return x >= b.left && x <= b.right && y >= b.top && y <= b.bottom;
 }
 /* harmony default export */ __webpack_exports__["default"] = ({
     // [data-app] may not be found
@@ -70935,7 +71005,7 @@ function isRippleEnabled(value) {
 function rippleShow(e) {
     var value = {};
     var element = e.currentTarget;
-    if (!element || element._ripple.touched) return;
+    if (!element || !element._ripple || element._ripple.touched) return;
     if (isTouchEvent(e)) {
         element._ripple.touched = true;
     }
@@ -71203,7 +71273,7 @@ var Vuetify = {
         Vue.use(_components_Vuetify__WEBPACK_IMPORTED_MODULE_1__["default"], __assign({ components: _components__WEBPACK_IMPORTED_MODULE_2__,
             directives: _directives__WEBPACK_IMPORTED_MODULE_3__["default"] }, args));
     },
-    version: '1.5.5'
+    version: '1.5.8'
 };
 if (typeof window !== 'undefined' && window.Vue) {
     window.Vue.use(Vuetify);
@@ -72162,6 +72232,7 @@ function searchChildren(children) {
         getClickableDependentElements: function getClickableDependentElements() {
             var result = [this.$el];
             if (this.$refs.content) result.push(this.$refs.content);
+            if (this.overlay) result.push(this.overlay);
             result.push.apply(result, __spread(this.getOpenDependentElements()));
             return result;
         }
@@ -72651,9 +72722,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(vue__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _positionable__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./positionable */ "./src/mixins/positionable.ts");
 /* harmony import */ var _stackable__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./stackable */ "./src/mixins/stackable.ts");
-/* harmony import */ var _util_console__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../util/console */ "./src/util/console.ts");
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
 
 
 
@@ -72743,6 +72812,7 @@ var dimensions = {
         return {
             absoluteX: 0,
             absoluteY: 0,
+            activatorFixed: false,
             dimensions: Object.assign({}, dimensions),
             isContentActive: false,
             pageWidth: 0,
@@ -72867,8 +72937,20 @@ var dimensions = {
         },
         checkForPageYOffset: function checkForPageYOffset() {
             if (this.hasWindow) {
-                this.pageYOffset = this.getOffsetTop();
+                this.pageYOffset = this.activatorFixed ? 0 : this.getOffsetTop();
             }
+        },
+        checkActivatorFixed: function checkActivatorFixed() {
+            if (this.attach !== false) return;
+            var el = this.getActivator();
+            while (el) {
+                if (window.getComputedStyle(el).position === 'fixed') {
+                    this.activatorFixed = true;
+                    return;
+                }
+                el = el.offsetParent;
+            }
+            this.activatorFixed = false;
         },
         deactivate: function deactivate() {},
         getActivator: function getActivator(e) {
@@ -72891,7 +72973,6 @@ var dimensions = {
                 var el = activator && activator.elm;
                 if (el) return el;
             }
-            Object(_util_console__WEBPACK_IMPORTED_MODULE_3__["consoleError"])('No activator found');
         },
         getInnerHeight: function getInnerHeight() {
             if (!this.hasWindow) return 0;
@@ -72952,6 +73033,7 @@ var dimensions = {
         updateDimensions: function updateDimensions() {
             var _this = this;
             this.checkForWindow();
+            this.checkActivatorFixed();
             this.checkForPageYOffset();
             this.pageWidth = document.documentElement.clientWidth;
             var dimensions = {};
@@ -73494,8 +73576,11 @@ __webpack_require__.r(__webpack_exports__);
     },
     methods: {
         save: function save(value) {
+            var _this = this;
             this.originalValue = value;
-            this.isActive = false;
+            setTimeout(function () {
+                _this.isActive = false;
+            });
         }
     }
 }));
@@ -77132,8 +77217,8 @@ __webpack_require__.r(__webpack_exports__);
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-__webpack_require__(/*! C:\Users\Kei\PhpstormProjects\rls_lara\resources\js\app.js */"./resources/js/app.js");
-module.exports = __webpack_require__(/*! C:\Users\Kei\PhpstormProjects\rls_lara\resources\sass\app.scss */"./resources/sass/app.scss");
+__webpack_require__(/*! C:\sites\rls_lara\resources\js\app.js */"./resources/js/app.js");
+module.exports = __webpack_require__(/*! C:\sites\rls_lara\resources\sass\app.scss */"./resources/sass/app.scss");
 
 
 /***/ })
