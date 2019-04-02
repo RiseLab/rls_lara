@@ -284,12 +284,24 @@
 					});
             },
             beforeRemove (index, done, fileList) {
-                console.log('index', index, fileList);
-                var r = confirm("remove image");
-                if (r === true) {
-                    done();
-                } else {
-                }
+            	if (confirm('Remove image?')) {
+	                axios
+						.delete('/api/v1/uploads', {
+							data: {
+								path: fileList[index].path.replace('/storage/', '')
+							}
+						})
+						.then(response => {
+							done();
+	                	})
+						.catch(error => {
+							this.message = {
+								show: true,
+								color: 'error',
+								text: error.response.data.message
+							};
+						});
+				}
             },
             editImage (formData, index, fileList) {
                 console.log('edit data', formData, index, fileList);

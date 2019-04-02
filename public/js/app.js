@@ -2448,12 +2448,23 @@ __webpack_require__.r(__webpack_exports__);
       });
     },
     beforeRemove: function beforeRemove(index, done, fileList) {
-      console.log('index', index, fileList);
-      var r = confirm("remove image");
+      var _this4 = this;
 
-      if (r === true) {
-        done();
-      } else {}
+      if (confirm('Remove image?')) {
+        axios.delete('/api/v1/uploads', {
+          data: {
+            path: fileList[index].path.replace('/storage/', '')
+          }
+        }).then(function (response) {
+          done();
+        }).catch(function (error) {
+          _this4.message = {
+            show: true,
+            color: 'error',
+            text: error.response.data.message
+          };
+        });
+      }
     },
     editImage: function editImage(formData, index, fileList) {
       console.log('edit data', formData, index, fileList);
@@ -2463,11 +2474,11 @@ __webpack_require__.r(__webpack_exports__);
     }
   },
   mounted: function mounted() {
-    var _this4 = this;
+    var _this5 = this;
 
     axios.get('/api/v1/products').then(function (response) {
-      _this4.items = response.data;
-      _this4.loading.table = false;
+      _this5.items = response.data;
+      _this5.loading.table = false;
     });
   }
 });
