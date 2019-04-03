@@ -2442,6 +2442,7 @@ __webpack_require__.r(__webpack_exports__);
     uploadImageSuccess: function uploadImageSuccess(formData, index, fileList) {
       var _this3 = this;
 
+      formData.append('path', 'temp');
       axios.post('/api/v1/uploads', formData).then(function (response) {
         fileList[index].path = "/storage/temp/".concat(response.data);
         _this3.photos = fileList;
@@ -34568,7 +34569,11 @@ var render = function() {
                               "data-change": _vm.dataChange
                             }
                           }),
-                          _vm._v(" "),
+                          _vm._v(
+                            "\n\t\t\t\t\t\t" +
+                              _vm._s(_vm.photos) +
+                              "\n\t\t\t\t\t\t"
+                          ),
                           _c("v-checkbox", {
                             attrs: { label: "Опубликован", color: "primary" },
                             model: {
@@ -34581,8 +34586,7 @@ var render = function() {
                           })
                         ],
                         1
-                      ),
-                      _vm._v("\n\t\t\t\t\t" + _vm._s(_vm.photos) + "\n\t\t\t\t")
+                      )
                     ],
                     1
                   ),

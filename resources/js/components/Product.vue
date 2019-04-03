@@ -79,13 +79,13 @@
 									drop-text="Drop your files here ..."
 									:data-images="photos">
 							</vue-upload-multiple-image>
+							{{ photos }}
 							<v-checkbox
 									label="Опубликован"
 									color="primary"
 									v-model="editedItem.available">
 							</v-checkbox>
 						</v-form>
-						{{ photos }}
 					</v-card-text>
 
 					<v-card-actions>
@@ -277,6 +277,7 @@
                     });
             },
             uploadImageSuccess(formData, index, fileList) {
+            	formData.append('path', 'temp');
                 axios.post('/api/v1/uploads', formData)
 					.then(response => {
 						fileList[index].path = `/storage/temp/${response.data}`;
