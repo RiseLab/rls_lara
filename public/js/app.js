@@ -2468,18 +2468,40 @@ __webpack_require__.r(__webpack_exports__);
       }
     },
     editImage: function editImage(formData, index, fileList) {
-      console.log('edit data', formData, index, fileList);
+      var _this5 = this;
+
+      var imgUpload = function imgUpload() {
+        formData.append('path', 'temp');
+        return axios.post('/api/v1/uploads', formData);
+      },
+          imgDelete = function imgDelete() {
+        return axios.delete('/api/v1/uploads', {
+          data: {
+            path: fileList[index].path.replace('/storage/', '')
+          }
+        });
+      };
+
+      axios.all([imgUpload(), imgDelete()]).then(axios.spread(function (upl, del) {
+        _this5.photos[index].path = "/storage/temp/".concat(upl.data);
+      })).catch(function (error) {
+        _this5.message = {
+          show: true,
+          color: 'error',
+          text: error
+        };
+      });
     },
     dataChange: function dataChange(data) {
       console.log(data);
     }
   },
   mounted: function mounted() {
-    var _this5 = this;
+    var _this6 = this;
 
     axios.get('/api/v1/products').then(function (response) {
-      _this5.items = response.data;
-      _this5.loading.table = false;
+      _this6.items = response.data;
+      _this6.loading.table = false;
     });
   }
 });

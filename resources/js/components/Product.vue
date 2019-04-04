@@ -305,7 +305,30 @@
 				}
             },
             editImage (formData, index, fileList) {
-                console.log('edit data', formData, index, fileList);
+            	let imgUpload = function () {
+						formData.append('path', 'temp');
+						return axios.post('/api/v1/uploads', formData);
+					},
+					imgDelete = function () {
+            			return axios
+							.delete('/api/v1/uploads', {
+								data: {
+									path: fileList[index].path.replace('/storage/', '')
+								}
+							})
+					};
+
+                axios.all([imgUpload(), imgDelete()])
+					.then(axios.spread((upl, del) => {
+						this.photos[index].path = `/storage/temp/${upl.data}`;
+					}))
+	                .catch(error => {
+		                this.message = {
+			                show: true,
+			                color: 'error',
+			                text: error
+		                };
+	                });
             },
             dataChange (data) {
                 console.log(data);

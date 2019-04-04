@@ -15,6 +15,7 @@ class UploadController extends Controller
 	 */
 	public function store()
 	{
+		// TODO: validation
 		if (request()->hasFile('file')) {
 			$path = storage_path('app/public/' . request()->file('file')->store(request('path'), 'public'));
 			$image = Image::make($path)->fit(1024, 768)->save($path);
