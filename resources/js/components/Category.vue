@@ -4,7 +4,7 @@
 			<v-toolbar-title>Категории</v-toolbar-title>
 			<v-spacer></v-spacer>
 			<v-dialog v-model="dialog" width="400" persistent>
-				<template v-slot:activator="{ on }">
+				<template #activator="{ on }">
 					<v-btn color="primary" v-on="on">
 						<v-icon small class="mr-1">add</v-icon>
 						Добавить
@@ -46,8 +46,8 @@
 				:rows-per-page-items="[10,25,{'text':'$vuetify.dataIterator.rowsPerPageAll','value':-1}]"
 				item-key="id"
 				select-all>
-			<v-progress-linear v-slot:progress color="blue" indeterminate></v-progress-linear>
-			<template v-slot:items="props">
+			<v-progress-linear #progress color="blue" indeterminate></v-progress-linear>
+			<template #items="props">
 				<td>
 					<v-checkbox
 							v-model="props.selected"
@@ -101,8 +101,8 @@
 				editedIndex: -1,
 				rules: {
 		            required: v => !!v || 'Required field.',
-					minLength: v => v.length >= 2 || 'Length must be 2 chars at least.',
-					maxLength: v => v.length <= 40 || 'Length must be less than 30 chars.'
+					minLength: v => v && v.length >= 2 || 'Length must be 2 chars at least.',
+					maxLength: v => v && v.length <= 40 || 'Length must be less than 30 chars.'
 				},
 				message: {
 		            show: false,
@@ -120,13 +120,13 @@
 
 		methods: {
 		    close: function () {
+                this.$refs.form.reset();
 		        this.editedItem = {
                     id: 0,
                     title: '',
                     alias: ''
 				};
 		        this.editedIndex = -1;
-		        this.$refs.form.reset();
 				this.dialog = false;
 			},
 			del: function (item) {

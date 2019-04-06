@@ -1893,10 +1893,10 @@ __webpack_require__.r(__webpack_exports__);
           return !!v || 'Required field.';
         },
         minLength: function minLength(v) {
-          return v.length >= 2 || 'Length must be 2 chars at least.';
+          return v && v.length >= 2 || 'Length must be 2 chars at least.';
         },
         maxLength: function maxLength(v) {
-          return v.length <= 40 || 'Length must be less than 30 chars.';
+          return v && v.length <= 40 || 'Length must be less than 30 chars.';
         }
       },
       message: {
@@ -1913,13 +1913,13 @@ __webpack_require__.r(__webpack_exports__);
   },
   methods: {
     close: function close() {
+      this.$refs.form.reset();
       this.editedItem = {
         id: 0,
         title: '',
         alias: ''
       };
       this.editedIndex = -1;
-      this.$refs.form.reset();
       this.dialog = false;
     },
     del: function del(item) {
@@ -1928,7 +1928,7 @@ __webpack_require__.r(__webpack_exports__);
       var index = this.items.indexOf(item);
 
       if (confirm("\u0412\u044B \u0443\u0432\u0435\u0440\u0435\u043D\u044B, \u0447\u0442\u043E \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044E '".concat(item.title, "'?"))) {
-        axios.delete('/api/v1/categories/' + item.id).then(function (response) {
+        axios["delete"]('/api/v1/categories/' + item.id).then(function (response) {
           _this.items.splice(index, 1);
 
           _this.message = {
@@ -1936,7 +1936,7 @@ __webpack_require__.r(__webpack_exports__);
             color: 'success',
             text: 'Категория успешно удалена.'
           };
-        }).catch(function (error) {
+        })["catch"](function (error) {
           _this.message = {
             show: true,
             color: 'error',
@@ -1982,13 +1982,13 @@ __webpack_require__.r(__webpack_exports__);
         };
 
         _this2.close();
-      }).catch(function (error) {
+      })["catch"](function (error) {
         _this2.message = {
           show: true,
           color: 'error',
           text: error.response.data.message
         };
-      }).finally(function () {
+      })["finally"](function () {
         _this2.loading.form = false;
       });
     }
@@ -2092,9 +2092,9 @@ __webpack_require__.r(__webpack_exports__);
       axios.post('/api/login', data).then(function (_ref) {
         var data = _ref.data;
         auth.login(data.token, data.user);
-      }).catch(function (error) {
+      })["catch"](function (error) {
         console.log(error);
-      }).finally(function () {
+      })["finally"](function () {
         _this.loading = false;
       });
     }
@@ -2285,6 +2285,47 @@ __webpack_require__.r(__webpack_exports__);
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 /* harmony default export */ __webpack_exports__["default"] = ({
   components: {
@@ -2294,6 +2335,7 @@ __webpack_require__.r(__webpack_exports__);
   data: function data() {
     return {
       dialog: false,
+      panel: 0,
       valid: false,
       loading: {
         table: true,
@@ -2313,14 +2355,17 @@ __webpack_require__.r(__webpack_exports__);
         text: 'Действия',
         sortable: false
       }],
+      categories: [],
       items: [],
-      photos: [],
       editedItem: {
         id: 0,
         title: '',
+        category: null,
+        brand: '',
         sourceLink: '',
         info: '',
         description: '',
+        photos: [],
         price: 0,
         priceOld: 0,
         stock: 0,
@@ -2332,12 +2377,17 @@ __webpack_require__.r(__webpack_exports__);
         required: function required(v) {
           return !!v || 'Required field.';
         },
-        minLength: function minLength(v) {
-          return v.length >= 2 || 'Length must be 2 chars at least.';
+        numPositive: function numPositive(v) {
+          return !isNaN(parseFloat(v)) && isFinite(v) && v >= 0 || 'Positive number or 0 only';
         },
-        maxLength: function maxLength(v) {
-          return v.length <= 40 || 'Length must be less than 30 chars.';
-        }
+        title: [function (v) {
+          return v && v.length >= 2 || 'Length must be 2 chars at least.';
+        }, function (v) {
+          return v && v.length <= 40 || 'Length must be less or equal to 40 chars.';
+        }],
+        descr: [function (v) {
+          return v && v.length >= 10 || 'Length must be 10 chars at least.';
+        }]
       },
       message: {
         show: false,
@@ -2353,20 +2403,23 @@ __webpack_require__.r(__webpack_exports__);
   },
   methods: {
     close: function close() {
+      this.$refs.form.reset();
       this.editedItem = {
         id: 0,
         title: '',
+        category: null,
+        brand: '',
         sourceLink: '',
         info: '',
         description: '',
+        photos: [],
         price: 0,
         priceOld: 0,
         stock: 0,
         available: false,
         alias: ''
       };
-      this.editedIndex = -1; //this.$refs.form.reset();
-
+      this.editedIndex = -1;
       this.dialog = false;
     },
     del: function del(item) {
@@ -2375,7 +2428,7 @@ __webpack_require__.r(__webpack_exports__);
       var index = this.items.indexOf(item);
 
       if (confirm("\u0412\u044B \u0443\u0432\u0435\u0440\u0435\u043D\u044B, \u0447\u0442\u043E \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0442\u043E\u0432\u0430\u0440 '".concat(item.title, "'?"))) {
-        axios.delete('/api/v1/products/' + item.id).then(function (response) {
+        axios["delete"]('/api/v1/products/' + item.id).then(function (response) {
           _this.items.splice(index, 1);
 
           _this.message = {
@@ -2383,7 +2436,7 @@ __webpack_require__.r(__webpack_exports__);
             color: 'success',
             text: 'Товар успешно удален.'
           };
-        }).catch(function (error) {
+        })["catch"](function (error) {
           _this.message = {
             show: true,
             color: 'error',
@@ -2400,6 +2453,11 @@ __webpack_require__.r(__webpack_exports__);
     save: function save() {
       var _this2 = this;
 
+      if (!this.$refs.form.validate()) {
+        this.panel = 0;
+        return;
+      }
+
       var sendMethod = 'post',
           sendUrl = '/api/v1/products';
 
@@ -2412,9 +2470,7 @@ __webpack_require__.r(__webpack_exports__);
       axios({
         method: sendMethod,
         url: sendUrl,
-        data: {
-          title: this.editedItem.title
-        }
+        data: this.editedItem
       }).then(function (response) {
         if (_this2.editedIndex >= 0) {
           Object.assign(_this2.items[_this2.editedIndex], response.data);
@@ -2429,15 +2485,18 @@ __webpack_require__.r(__webpack_exports__);
         };
 
         _this2.close();
-      }).catch(function (error) {
+      })["catch"](function (error) {
         _this2.message = {
           show: true,
           color: 'error',
           text: error.response.data.message
         };
-      }).finally(function () {
+      })["finally"](function () {
         _this2.loading.form = false;
       });
+    },
+    categoryChange: function categoryChange(category) {
+      this.editedItem.category = category;
     },
     uploadImageSuccess: function uploadImageSuccess(formData, index, fileList) {
       var _this3 = this;
@@ -2445,20 +2504,20 @@ __webpack_require__.r(__webpack_exports__);
       formData.append('path', 'temp');
       axios.post('/api/v1/uploads', formData).then(function (response) {
         fileList[index].path = "/storage/temp/".concat(response.data);
-        _this3.photos = fileList;
+        _this3.editedItem.photos = fileList;
       });
     },
     beforeRemove: function beforeRemove(index, done, fileList) {
       var _this4 = this;
 
       if (confirm('Remove image?')) {
-        axios.delete('/api/v1/uploads', {
+        axios["delete"]('/api/v1/uploads', {
           data: {
             path: fileList[index].path.replace('/storage/', '')
           }
         }).then(function (response) {
           done();
-        }).catch(function (error) {
+        })["catch"](function (error) {
           _this4.message = {
             show: true,
             color: 'error',
@@ -2475,7 +2534,7 @@ __webpack_require__.r(__webpack_exports__);
         return axios.post('/api/v1/uploads', formData);
       },
           imgDelete = function imgDelete() {
-        return axios.delete('/api/v1/uploads', {
+        return axios["delete"]('/api/v1/uploads', {
           data: {
             path: fileList[index].path.replace('/storage/', '')
           }
@@ -2483,8 +2542,8 @@ __webpack_require__.r(__webpack_exports__);
       };
 
       axios.all([imgUpload(), imgDelete()]).then(axios.spread(function (upl, del) {
-        _this5.photos[index].path = "/storage/temp/".concat(upl.data);
-      })).catch(function (error) {
+        _this5.editedItem.photos[index].path = "/storage/temp/".concat(upl.data);
+      }))["catch"](function (error) {
         _this5.message = {
           show: true,
           color: 'error',
@@ -2494,14 +2553,24 @@ __webpack_require__.r(__webpack_exports__);
     },
     dataChange: function dataChange(data) {
       console.log(data);
+    },
+    markIsPrimary: function markIsPrimary(index, fileList) {
+      console.log(index, fileList);
     }
   },
   mounted: function mounted() {
     var _this6 = this;
 
     axios.get('/api/v1/products').then(function (response) {
-      _this6.items = response.data;
+      response.data.forEach(function (item) {
+        item.photos = JSON.parse(item.photos);
+
+        _this6.items.push(item);
+      });
       _this6.loading.table = false;
+    });
+    axios.get('/api/v1/categories').then(function (response) {
+      _this6.categories = response.data;
     });
   }
 });
@@ -2571,9 +2640,9 @@ __webpack_require__.r(__webpack_exports__);
         auth.logout();
 
         _this.$router.push('/');
-      }).catch(function (error) {
+      })["catch"](function (error) {
         console.log(error);
-      }).finally(function () {
+      })["finally"](function () {
         _this.loading = false;
       });
     }
@@ -34419,153 +34488,310 @@ var render = function() {
                     "v-card-text",
                     [
                       _c(
-                        "v-form",
+                        "v-expansion-panel",
                         {
-                          ref: "form",
-                          on: {
-                            submit: function($event) {
-                              $event.preventDefault()
-                            }
-                          },
                           model: {
-                            value: _vm.valid,
+                            value: _vm.panel,
                             callback: function($$v) {
-                              _vm.valid = $$v
+                              _vm.panel = $$v
                             },
-                            expression: "valid"
+                            expression: "panel"
                           }
                         },
                         [
-                          _c("v-text-field", {
-                            attrs: {
-                              label: "Наименование",
-                              counter: 40,
-                              rules: [
-                                _vm.rules.required,
-                                _vm.rules.minLength,
-                                _vm.rules.maxLength
-                              ]
-                            },
-                            model: {
-                              value: _vm.editedItem.title,
-                              callback: function($$v) {
-                                _vm.$set(_vm.editedItem, "title", $$v)
-                              },
-                              expression: "editedItem.title"
-                            }
-                          }),
-                          _vm._v(" "),
-                          _c("v-text-field", {
-                            attrs: { label: "Источник", rules: [] },
-                            model: {
-                              value: _vm.editedItem.sourceLink,
-                              callback: function($$v) {
-                                _vm.$set(_vm.editedItem, "sourceLink", $$v)
-                              },
-                              expression: "editedItem.sourceLink"
-                            }
-                          }),
-                          _vm._v(" "),
-                          _c("v-textarea", {
-                            attrs: {
-                              label: "Краткое описание",
-                              "auto-grow": "",
-                              rows: "2"
-                            },
-                            model: {
-                              value: _vm.editedItem.info,
-                              callback: function($$v) {
-                                _vm.$set(_vm.editedItem, "info", $$v)
-                              },
-                              expression: "editedItem.info"
-                            }
-                          }),
-                          _vm._v(" "),
-                          _c("v-textarea", {
-                            attrs: {
-                              label: "Полное описание",
-                              "auto-grow": "",
-                              rows: "2"
-                            },
-                            model: {
-                              value: _vm.editedItem.description,
-                              callback: function($$v) {
-                                _vm.$set(_vm.editedItem, "description", $$v)
-                              },
-                              expression: "editedItem.description"
-                            }
-                          }),
-                          _vm._v(" "),
                           _c(
-                            "v-layout",
-                            { staticClass: "pb-1" },
+                            "v-expansion-panel-content",
+                            {
+                              scopedSlots: _vm._u([
+                                {
+                                  key: "header",
+                                  fn: function() {
+                                    return [_c("div", [_vm._v("Описание")])]
+                                  },
+                                  proxy: true
+                                }
+                              ])
+                            },
                             [
-                              _c(
-                                "v-flex",
-                                { staticClass: "mr-2" },
-                                [
-                                  _c("v-text-field", {
-                                    attrs: {
-                                      label: "Цена",
-                                      type: "number",
-                                      min: "0"
-                                    },
-                                    model: {
-                                      value: _vm.editedItem.price,
-                                      callback: function($$v) {
-                                        _vm.$set(_vm.editedItem, "price", $$v)
-                                      },
-                                      expression: "editedItem.price"
-                                    }
-                                  })
-                                ],
-                                1
-                              ),
                               _vm._v(" "),
                               _c(
-                                "v-flex",
-                                { staticClass: "mx-2" },
+                                "v-form",
+                                {
+                                  ref: "form",
+                                  staticClass: "px-4 pb-4",
+                                  on: {
+                                    submit: function($event) {
+                                      $event.preventDefault()
+                                    }
+                                  },
+                                  model: {
+                                    value: _vm.valid,
+                                    callback: function($$v) {
+                                      _vm.valid = $$v
+                                    },
+                                    expression: "valid"
+                                  }
+                                },
                                 [
-                                  _c("v-text-field", {
+                                  _c(
+                                    "v-layout",
+                                    { staticClass: "pb-1" },
+                                    [
+                                      _c(
+                                        "v-flex",
+                                        {
+                                          staticClass: "mr-2",
+                                          attrs: { xs8: "" }
+                                        },
+                                        [
+                                          _c("v-select", {
+                                            attrs: {
+                                              items: _vm.categories,
+                                              label: "Категория",
+                                              "single-line": true,
+                                              rules: [_vm.rules.required],
+                                              "item-text": "title",
+                                              "item-value": "id"
+                                            },
+                                            on: { change: _vm.categoryChange },
+                                            model: {
+                                              value: _vm.editedItem.category,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "category",
+                                                  $$v
+                                                )
+                                              },
+                                              expression: "editedItem.category"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "v-flex",
+                                        {
+                                          staticClass: "ml-2",
+                                          attrs: { xs4: "" }
+                                        },
+                                        [
+                                          _c("v-text-field", {
+                                            attrs: { label: "Брэнд" },
+                                            model: {
+                                              value: _vm.editedItem.brand,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "brand",
+                                                  $$v
+                                                )
+                                              },
+                                              expression: "editedItem.brand"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      )
+                                    ],
+                                    1
+                                  ),
+                                  _vm._v(" "),
+                                  _c(
+                                    "v-layout",
+                                    { staticClass: "pb-1" },
+                                    [
+                                      _c(
+                                        "v-flex",
+                                        {
+                                          staticClass: "mr-2",
+                                          attrs: { xs8: "" }
+                                        },
+                                        [
+                                          _c("v-text-field", {
+                                            attrs: {
+                                              label: "Наименование",
+                                              counter: 40,
+                                              rules: [].concat(
+                                                _vm.rules.required,
+                                                _vm.rules.title
+                                              )
+                                            },
+                                            model: {
+                                              value: _vm.editedItem.title,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "title",
+                                                  $$v
+                                                )
+                                              },
+                                              expression: "editedItem.title"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "v-flex",
+                                        {
+                                          staticClass: "ml-2",
+                                          attrs: { xs4: "" }
+                                        },
+                                        [
+                                          _c("v-text-field", {
+                                            attrs: { label: "Источник" },
+                                            model: {
+                                              value: _vm.editedItem.sourceLink,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "sourceLink",
+                                                  $$v
+                                                )
+                                              },
+                                              expression:
+                                                "editedItem.sourceLink"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      )
+                                    ],
+                                    1
+                                  ),
+                                  _vm._v(" "),
+                                  _c("v-textarea", {
                                     attrs: {
-                                      label: "Старая цена",
-                                      type: "number",
-                                      min: "0"
+                                      label: "Краткое описание",
+                                      rules: [].concat(
+                                        _vm.rules.required,
+                                        _vm.rules.descr
+                                      ),
+                                      "no-resize": "",
+                                      rows: "4"
                                     },
                                     model: {
-                                      value: _vm.editedItem.priceOld,
+                                      value: _vm.editedItem.info,
+                                      callback: function($$v) {
+                                        _vm.$set(_vm.editedItem, "info", $$v)
+                                      },
+                                      expression: "editedItem.info"
+                                    }
+                                  }),
+                                  _vm._v(" "),
+                                  _c("v-textarea", {
+                                    attrs: {
+                                      label: "Полное описание",
+                                      rules: [].concat(
+                                        _vm.rules.required,
+                                        _vm.rules.descr
+                                      ),
+                                      "no-resize": "",
+                                      rows: "4"
+                                    },
+                                    model: {
+                                      value: _vm.editedItem.description,
                                       callback: function($$v) {
                                         _vm.$set(
                                           _vm.editedItem,
-                                          "priceOld",
+                                          "description",
                                           $$v
                                         )
                                       },
-                                      expression: "editedItem.priceOld"
+                                      expression: "editedItem.description"
                                     }
-                                  })
-                                ],
-                                1
-                              ),
-                              _vm._v(" "),
-                              _c(
-                                "v-flex",
-                                { staticClass: "ml-2" },
-                                [
-                                  _c("v-text-field", {
-                                    attrs: {
-                                      label: "Остаток",
-                                      type: "number",
-                                      min: "0"
-                                    },
-                                    model: {
-                                      value: _vm.editedItem.stock,
-                                      callback: function($$v) {
-                                        _vm.$set(_vm.editedItem, "stock", $$v)
-                                      },
-                                      expression: "editedItem.stock"
-                                    }
-                                  })
+                                  }),
+                                  _vm._v(" "),
+                                  _c(
+                                    "v-layout",
+                                    { staticClass: "pb-1" },
+                                    [
+                                      _c(
+                                        "v-flex",
+                                        { staticClass: "mr-2" },
+                                        [
+                                          _c("v-text-field", {
+                                            attrs: {
+                                              label: "Цена",
+                                              rules: [_vm.rules.numPositive],
+                                              type: "number",
+                                              min: "0"
+                                            },
+                                            model: {
+                                              value: _vm.editedItem.price,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "price",
+                                                  $$v
+                                                )
+                                              },
+                                              expression: "editedItem.price"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "v-flex",
+                                        { staticClass: "mx-2" },
+                                        [
+                                          _c("v-text-field", {
+                                            attrs: {
+                                              label: "Старая цена",
+                                              rules: [_vm.rules.numPositive],
+                                              type: "number",
+                                              min: "0"
+                                            },
+                                            model: {
+                                              value: _vm.editedItem.priceOld,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "priceOld",
+                                                  $$v
+                                                )
+                                              },
+                                              expression: "editedItem.priceOld"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      ),
+                                      _vm._v(" "),
+                                      _c(
+                                        "v-flex",
+                                        { staticClass: "ml-2" },
+                                        [
+                                          _c("v-text-field", {
+                                            attrs: {
+                                              label: "Остаток",
+                                              rules: [_vm.rules.numPositive],
+                                              type: "number",
+                                              min: "0"
+                                            },
+                                            model: {
+                                              value: _vm.editedItem.stock,
+                                              callback: function($$v) {
+                                                _vm.$set(
+                                                  _vm.editedItem,
+                                                  "stock",
+                                                  $$v
+                                                )
+                                              },
+                                              expression: "editedItem.stock"
+                                            }
+                                          })
+                                        ],
+                                        1
+                                      )
+                                    ],
+                                    1
+                                  )
                                 ],
                                 1
                               )
@@ -34573,42 +34799,58 @@ var render = function() {
                             1
                           ),
                           _vm._v(" "),
-                          _c("vue-upload-multiple-image", {
-                            attrs: {
-                              "drag-text": "Drag pictures (multiple)",
-                              "browse-text": "(or) Select",
-                              "primary-text": "Default",
-                              "mark-is-primary-text": "Set as default",
-                              "popup-text":
-                                "This image will be displayed as default",
-                              "drop-text": "Drop your files here ...",
-                              "data-images": _vm.photos
+                          _c(
+                            "v-expansion-panel-content",
+                            {
+                              scopedSlots: _vm._u([
+                                {
+                                  key: "header",
+                                  fn: function() {
+                                    return [_c("div", [_vm._v("Изображения")])]
+                                  },
+                                  proxy: true
+                                }
+                              ])
                             },
-                            on: {
-                              "upload-success": _vm.uploadImageSuccess,
-                              "before-remove": _vm.beforeRemove,
-                              "edit-image": _vm.editImage,
-                              "data-change": _vm.dataChange
-                            }
-                          }),
-                          _vm._v(
-                            "\n\t\t\t\t\t\t" +
-                              _vm._s(_vm.photos) +
-                              "\n\t\t\t\t\t\t"
-                          ),
-                          _c("v-checkbox", {
-                            attrs: { label: "Опубликован", color: "primary" },
-                            model: {
-                              value: _vm.editedItem.available,
-                              callback: function($$v) {
-                                _vm.$set(_vm.editedItem, "available", $$v)
-                              },
-                              expression: "editedItem.available"
-                            }
-                          })
+                            [
+                              _vm._v(" "),
+                              _c("vue-upload-multiple-image", {
+                                staticClass: "px-4 pb-4",
+                                attrs: {
+                                  "drag-text": "Drag pictures (multiple)",
+                                  "browse-text": "(or) Select",
+                                  "primary-text": "Default",
+                                  "mark-is-primary-text": "Set as default",
+                                  "popup-text":
+                                    "This image will be displayed as default",
+                                  "drop-text": "Drop your files here ...",
+                                  "data-images": _vm.editedItem.photos
+                                },
+                                on: {
+                                  "upload-success": _vm.uploadImageSuccess,
+                                  "before-remove": _vm.beforeRemove,
+                                  "edit-image": _vm.editImage,
+                                  "data-change": _vm.dataChange,
+                                  "mark-is-primary": _vm.markIsPrimary
+                                }
+                              })
+                            ],
+                            1
+                          )
                         ],
                         1
-                      )
+                      ),
+                      _vm._v(" "),
+                      _c("v-checkbox", {
+                        attrs: { label: "Publish", color: "primary" },
+                        model: {
+                          value: _vm.editedItem.available,
+                          callback: function($$v) {
+                            _vm.$set(_vm.editedItem, "available", $$v)
+                          },
+                          expression: "editedItem.available"
+                        }
+                      })
                     ],
                     1
                   ),
@@ -34637,7 +34879,6 @@ var render = function() {
                           attrs: {
                             color: "primary",
                             flat: "",
-                            disabled: !_vm.valid,
                             loading: _vm.loading.form
                           },
                           on: { click: _vm.save }
@@ -60741,13 +60982,6 @@ __webpack_require__.r(__webpack_exports__);
                     }
                 }
             }, [itemObj.text]);
-        },
-        setSelectedItems: function setSelectedItems() {
-            if (this.internalValue == null) {
-                this.selectedItems = [];
-            } else {
-                this.selectedItems = [this.internalValue];
-            }
         }
     }
 }));
@@ -69624,7 +69858,7 @@ var Vuetify = {
             return false;
         })(opts.components);
     },
-    version: '1.5.8'
+    version: '1.5.9'
 };
 function checkVueVersion(Vue, requiredVue) {
     var vueDep = requiredVue || '^2.5.18';
@@ -71310,7 +71544,7 @@ var Vuetify = {
         Vue.use(_components_Vuetify__WEBPACK_IMPORTED_MODULE_1__["default"], __assign({ components: _components__WEBPACK_IMPORTED_MODULE_2__,
             directives: _directives__WEBPACK_IMPORTED_MODULE_3__["default"] }, args));
     },
-    version: '1.5.8'
+    version: '1.5.9'
 };
 if (typeof window !== 'undefined' && window.Vue) {
     window.Vue.use(Vuetify);
@@ -76420,7 +76654,7 @@ function () {
       return new Promise(function (resolve, reject) {
         axios[requestType](url, data).then(function (response) {
           resolve(response);
-        }).catch(function (_ref) {
+        })["catch"](function (_ref) {
           var response = _ref.response;
 
           if (response.status === 401) {
@@ -77254,8 +77488,8 @@ __webpack_require__.r(__webpack_exports__);
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-__webpack_require__(/*! C:\sites\rls_lara\resources\js\app.js */"./resources/js/app.js");
-module.exports = __webpack_require__(/*! C:\sites\rls_lara\resources\sass\app.scss */"./resources/sass/app.scss");
+__webpack_require__(/*! C:\Users\Kei\PhpstormProjects\rls_lara\resources\js\app.js */"./resources/js/app.js");
+module.exports = __webpack_require__(/*! C:\Users\Kei\PhpstormProjects\rls_lara\resources\sass\app.scss */"./resources/sass/app.scss");
 
 
 /***/ })
